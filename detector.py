@@ -10,6 +10,8 @@ from pathfinding.finder.a_star import AStarFinder
 image = cv2.imread("./resources/teset.jpg")
 imageGray = cv2.imread("./resources/teset.jpg",  cv2.IMREAD_GRAYSCALE)
 print(len(image.shape))
+
+
 class coordinate:
     def __init__(self, x, y, yaw):
         self.x = x
@@ -148,11 +150,9 @@ class boatDetector:
                                decode_sharpening=0.25,
                                debug=0)
 
-        tag = at_detector.detect(imageGray, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
-	corners = tag.corners
-	centerX = (corners[0, 0] + corners[2, 0]) // 2
-	centerY = (corners[0, 1] + corners[2 ,1 ]) // 2
-        return (centerX, centerY)
+        tag = at_detector.detect(
+            imageGray, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
+        corners = tag.corners
 
 
 class frameCapture:
@@ -195,7 +195,7 @@ trash, obstacles = pathFind.convertBoxes(boxes)
 pathFind.path((14, 5), trash, obstacles)
 boatDetect = boatDetector()
 cors = np.int0(boatDetect.detectBoatCoordinate())
-cv2.circle(image, cors, 4, (0,0,0), -1)
+cv2.circle(image, cors, 4, (0, 0, 0), -1)
 cv2.imshow("image", image)
 
 # for cnt in contours[0]:
