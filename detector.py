@@ -187,13 +187,14 @@ class frameCapture:
 #     c = cv2.waitKey(1)
 #     if c == 27:
 #         break
-
+boatDetect = boatDetector()
+cors = np.int0(boatDetect.detectBoatCoordinate())
 objectDetect = objectDetector()
 pathFind = pathFinder(image, 60)
 contours = objectDetect.findContours(image)
 boxes = objectDetect.calculateBoundingBox(contours)
 
-boxes = objectDetect.sortBoxes(boxes, 50)
+boxes = objectDetect.sortBoxes(boxes, 50, cors)
 for box in boxes[1]:
 
     cv2.drawContours(image, [box[0]], 0, (255, 0, 0), 2)
@@ -201,8 +202,7 @@ for box in boxes[1]:
 trash, obstacles = pathFind.convertBoxes(boxes)
 
 pathFind.path((14, 5), trash, obstacles)
-boatDetect = boatDetector()
-cors = np.int0(boatDetect.detectBoatCoordinate())
+
 cv2.circle(image, cors, 4, (0, 0, 0), -1)
 cv2.imshow("image", image)
 
