@@ -64,8 +64,9 @@ class pathFinder:
                 newObsBox.append(
                     (point[0] // self.threshold, point[1] // self.threshold))
             obstacles.append(newObsBox)
-
-        return (trash, obstacles)
+        boat = (boxes[2][1][0] // self.threshold, boxes[2][1][1] // self.threshold)
+       
+        return (trash, obstacles, np.int0(boat))
 
     def path(self, robot, trash, obstacle):
         self.robot, self.trash, self.obstacle = robot, trash[0], obstacle
@@ -126,11 +127,11 @@ class objectDetector:
     def sortBoxes(self, boxes, threshold, boatCenter):
         trash = []
         obstacles = []
-
+        boat = []
         for box, center in boxes:
             if self.distance(box[0], box[1]) > threshold or self.distance(box[1], box[2]) > threshold:
-                if cv2.pointPolygonTest(box, boatCenter, False) >= 0:
-                    boat = box
+                if cv2.pointPolygonTest(box,boatCenter, False) >= 0:
+                    boat = (box, boatCenter)
                 else:
                     obstacles.append((box, center))
             else:
@@ -158,8 +159,8 @@ class boatDetector:
             imageGray, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
 
         corners = tag.corners
-        centerX = (corners[0, 0] + corners[2, 0]) // 2
-        centerY = (corners[0, 1] + corners[2, 1]) // 2
+        centerX = int((corners[0, 0] + corners[2, 0]) // 2)
+        centerY = int((corners[0, 1] + corners[2, 1]) // 2)
         return (centerX, centerY)
 
 
@@ -189,19 +190,20 @@ class frameCapture:
 #         break
 boatDetect = boatDetector()
 cors = np.int0(boatDetect.detectBoatCoordinate())
+print(cors)
 objectDetect = objectDetector()
 pathFind = pathFinder(image, 60)
 contours = objectDetect.findContours(image)
 boxes = objectDetect.calculateBoundingBox(contours)
 
-boxes = objectDetect.sortBoxes(boxes, 50, cors)
+boxes = objectDetect.sortBoxes(boxes, 50, (int(cors[0]), int(cors[1])))
 for box in boxes[1]:
 
     cv2.drawContours(image, [box[0]], 0, (255, 0, 0), 2)
 
-trash, obstacles = pathFind.convertBoxes(boxes)
+trash, obstacles, boat = pathFind.convertBoxes(boxes)
 
-pathFind.path((14, 5), trash, obstacles)
+pathFind.path(boat, trash, obstacles)
 
 cv2.circle(image, cors, 4, (0, 0, 0), -1)
 cv2.imshow("image", image)
