@@ -1,13 +1,15 @@
 import cv2
 import numpy as np
 import math
-
+from dt_apriltags import Detector
 from numpy.core.fromnumeric import diagonal
 from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 
-
+image = cv2.imread("./resources/teset.jpg")
+imageGray = cv2.imread("./resources/teset.jpg",  cv2.IMREAD_GRAYSCALE)
+print(len(image.shape))
 class coordinate:
     def __init__(self, x, y, yaw):
         self.x = x
@@ -103,7 +105,6 @@ class objectDetector:
         mask = cv2.inRange(input, hsvl, hsvh)
         mask = cv2.dilate(mask, np.ones((dl, dl), np.uint8), iterations=1)
         mask = cv2.bitwise_not(mask)
-        cv2.imshow("mask", mask)
         cannyFrame = cv2.Canny(mask, 100, 150)
         contours, hi = cv2.findContours(
             cannyFrame, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -137,7 +138,7 @@ class objectDetector:
 
 class boatDetector:
     @staticmethod
-    def detectBoatCoordinate(self):
+    def detectBoatCoordinate():
         at_detector = Detector(searchpath=['apriltags'],
                                families='tag36h11',
                                nthreads=1,
@@ -147,10 +148,11 @@ class boatDetector:
                                decode_sharpening=0.25,
                                debug=0)
 
-        tag = at_detector.detect(
-            image, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
-
-        return tag.corners
+        tag = at_detector.detect(imageGray, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
+	corners = tag.corners
+	centerX = (corners[0, 0] + corners[2, 0]) // 2
+	centerY = (corners[0, 1] + corners[2 ,1 ]) // 2
+        return (centerX, centerY)
 
 
 class frameCapture:
@@ -177,7 +179,7 @@ class frameCapture:
 #     c = cv2.waitKey(1)
 #     if c == 27:
 #         break
-image = cv2.imread("./resources/teset.jpg")
+
 objectDetect = objectDetector()
 pathFind = pathFinder(image, 60)
 contours = objectDetect.findContours(image)
@@ -191,6 +193,10 @@ for box in boxes[1]:
 trash, obstacles = pathFind.convertBoxes(boxes)
 
 pathFind.path((14, 5), trash, obstacles)
+boatDetect = boatDetector()
+cors = np.int0(boatDetect.detectBoatCoordinate())
+cv2.circle(image, cors, 4, (0,0,0), -1)
+cv2.imshow("image", image)
 
 # for cnt in contours[0]:
 #     rect = cv2.minAreaRect(cnt)
@@ -218,7 +224,7 @@ pathFind.path((14, 5), trash, obstacles)
 #     image[np.int0(p)[0], np.int0(p)[1]] = (255, 255, 255)
 
 # cv2.imshow("img", image)
-# cv2.waitKey(0)
+cv2.waitKey(0)
 
 # # # fr.release()
-# cv2.destroyAllWindows()
+cv2.destroyAllWindows()
