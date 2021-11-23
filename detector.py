@@ -42,6 +42,7 @@ class pathFinder:
 
         self.threshold = threshold
         self.matrix = np.full((matrixHeight, matrixWidth), 1)
+        self.opencvMatrix = np.zeros((matrixHeight, matrixWidth, 3))
         self.matrixWithCoordinate = matrixWC
 
     def convertBoxes(self, boxes):
@@ -57,7 +58,7 @@ class pathFinder:
             newObsBox = []
             for point in obsBox:
                 newObsBox.append(
-                    (point[1] // self.threshold, point[0] // self.threshold))
+                    (point[0] // self.threshold, point[1] // self.threshold))
             obstacles.append(newObsBox)
 
         return (trash, obstacles)
@@ -65,11 +66,13 @@ class pathFinder:
     def path(self, robot, trash, obstacle):
         self.robot, self.trash, self.obstacle = robot, trash[0], obstacle
         for box in obstacles:
-            for point in box:
-                try:
-                    self.matrix[point[0], point[1]] = 0
-                except IndexError:
-                    pass
+            cv2.drawContours(self.opencvMatrix, np.int0([box]),
+                             0, (0, 0, 255), -1)
+        for i in range(self.opencvMatrix.shape[0]):
+            for j in range(self.opencvMatrix.shape[1]):
+                if self.opencvMatrix[i, j, 2] == 255:
+                    self.matrix[i, j] = 0
+
         grid = Grid(matrix=self.matrix)
         start = grid.node(robot[0], robot[1])
         end = grid.node(trash[0][0], trash[0][1])
@@ -132,6 +135,24 @@ class objectDetector:
         return input
 
 
+class boatDetector:
+    @staticmethod
+    def detectBoatCoordinate(self):
+        at_detector = Detector(searchpath=['apriltags'],
+                               families='tag36h11',
+                               nthreads=1,
+                               quad_decimate=1.0,
+                               quad_sigma=0.0,
+                               refine_edges=1,
+                               decode_sharpening=0.25,
+                               debug=0)
+
+        tag = at_detector.detect(
+            image, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
+
+        return tag.corners
+
+
 class frameCapture:
     def __init__(self, id):
         self.feed = cv2.VideoCapture(id)
@@ -166,7 +187,7 @@ boxes = objectDetect.sortBoxes(boxes, 50)
 for box in boxes[1]:
 
     cv2.drawContours(image, [box[0]], 0, (255, 0, 0), 2)
-cv2.imshow("sd", image)
+
 trash, obstacles = pathFind.convertBoxes(boxes)
 
 pathFind.path((14, 5), trash, obstacles)
@@ -197,7 +218,7 @@ pathFind.path((14, 5), trash, obstacles)
 #     image[np.int0(p)[0], np.int0(p)[1]] = (255, 255, 255)
 
 # cv2.imshow("img", image)
-cv2.waitKey(0)
+# cv2.waitKey(0)
 
-# # fr.release()
-cv2.destroyAllWindows()
+# # # fr.release()
+# cv2.destroyAllWindows()
