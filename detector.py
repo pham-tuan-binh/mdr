@@ -152,7 +152,11 @@ class boatDetector:
 
         tag = at_detector.detect(
             imageGray, estimate_tag_pose=False, camera_params=None, tag_size=None)[0]
+
         corners = tag.corners
+        centerX = (corners[0, 0] + corners[2, 0]) // 2
+        centerY = (corners[0, 1] + corners[2, 1]) // 2
+        return (centerX, centerY)
 
 
 class frameCapture:
