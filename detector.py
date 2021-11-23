@@ -123,15 +123,19 @@ class objectDetector:
             boxes.append((box, (centerX, centerY)))
         return boxes
 
-    def sortBoxes(self, boxes, threshold):
+    def sortBoxes(self, boxes, threshold, boatCenter):
         trash = []
         obstacles = []
+
         for box, center in boxes:
             if self.distance(box[0], box[1]) > threshold or self.distance(box[1], box[2]) > threshold:
-                obstacles.append((box, center))
+                if cv2.pointPolygonTest(box, boatCenter, False) >= 0:
+                    boat = box
+                else:
+                    obstacles.append((box, center))
             else:
                 trash.append((box, center))
-        return (trash, obstacles)
+        return (trash, obstacles, boat)
 
     def visualizeContours(self, input, contours):
         cv2.drawContours(input, contours, -1, (0, 0, 255), 4)
