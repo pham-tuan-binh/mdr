@@ -64,8 +64,9 @@ class pathFinder:
                 newObsBox.append(
                     (point[0] // self.threshold, point[1] // self.threshold))
             obstacles.append(newObsBox)
-        boat = (boxes[2][1][0] // self.threshold, boxes[2][1][1] // self.threshold)
-       
+        boat = (boxes[2][1][0] // self.threshold,
+                boxes[2][1][1] // self.threshold)
+
         return (trash, obstacles, np.int0(boat))
 
     def path(self, robot, trash, obstacle):
@@ -130,7 +131,7 @@ class objectDetector:
         boat = []
         for box, center in boxes:
             if self.distance(box[0], box[1]) > threshold or self.distance(box[1], box[2]) > threshold:
-                if cv2.pointPolygonTest(box,boatCenter, False) >= 0:
+                if cv2.pointPolygonTest(box, boatCenter, False) >= 0:
                     boat = (box, boatCenter)
                 else:
                     obstacles.append((box, center))
@@ -193,12 +194,18 @@ cors = np.int0(boatDetect.detectBoatCoordinate())
 print(cors)
 objectDetect = objectDetector()
 pathFind = pathFinder(image, 60)
+
+matrix = pathFind.matrixWithCoordinate
+
+for row in matrix:
+    for point in row:
+        cv2.circle(image, (point[1], point[0]), 4, (0, 0, 255), 2)
+
 contours = objectDetect.findContours(image)
 boxes = objectDetect.calculateBoundingBox(contours)
 
 boxes = objectDetect.sortBoxes(boxes, 50, (int(cors[0]), int(cors[1])))
 for box in boxes[1]:
-
     cv2.drawContours(image, [box[0]], 0, (255, 0, 0), 2)
 
 trash, obstacles, boat = pathFind.convertBoxes(boxes)
