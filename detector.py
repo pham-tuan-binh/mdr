@@ -191,7 +191,6 @@ class frameCapture:
 #         break
 boatDetect = boatDetector()
 cors = np.int0(boatDetect.detectBoatCoordinate())
-print(cors)
 objectDetect = objectDetector()
 pathFind = pathFinder(image, 60)
 
@@ -199,19 +198,36 @@ matrix = pathFind.matrixWithCoordinate
 
 for row in matrix:
     for point in row:
-        cv2.circle(image, (point[1], point[0]), 4, (0, 0, 255), 2)
+        cv2.circle(image, np.int0((point[1], point[0])), 10, (255, 255, 255), 1)
 
 contours = objectDetect.findContours(image)
 boxes = objectDetect.calculateBoundingBox(contours)
 
 boxes = objectDetect.sortBoxes(boxes, 50, (int(cors[0]), int(cors[1])))
+#Draw obstacles
 for box in boxes[1]:
-    cv2.drawContours(image, [box[0]], 0, (255, 0, 0), 2)
+    cv2.drawContours(image, [box[0]], 0, (0, 0, 255), 2)
+    box = np.int0(box[0])
+    cv2.line(image, box[0], box[2], (0,0,255), thickness = 2)
+    cv2.line(image, box[1], box[3], (0,0,255), thickness = 2)
+#Draw trash
+for box in boxes[0]:
+    cv2.circle(image, box[1], 64, (255,0,0), 2)
 
+#Draw boat
+cv2.drawContours(image, [boxes[2][0]], 0, (255, 0, 0), 2)
+    
 trash, obstacles, boat = pathFind.convertBoxes(boxes)
 
-pathFind.path(boat, trash, obstacles)
-
+path = pathFind.path(boat, trash, obstacles)
+pathPoints = []
+# Draw path point
+for point in path:
+    point = matrix[point[1], point[0]]
+    pathPoints.append(np.int0((point[1], point[0])))
+    cv2.circle(image, np.int0((point[1], point[0])), 5, (0, 0, 0), -1)
+# Draw path line
+cv2.polylines(image, np.int0([pathPoints]), isClosed = False, color = (0,0,0), thickness = 2, lineType = cv2.LINE_AA)
 cv2.circle(image, cors, 4, (0, 0, 0), -1)
 cv2.imshow("image", image)
 
