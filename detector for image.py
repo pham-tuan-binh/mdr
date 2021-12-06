@@ -6,17 +6,25 @@ from numpy.core.fromnumeric import diagonal
 from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
-import socket
-import json
 
-HOST = '172.16.0.171'  # The server's hostname or IP address
-PORT = 10001        # The port used by the server
+image = cv2.imread("./resources/teset.jpg")
+imageGray = cv2.imread("./resources/teset.jpg",  cv2.IMREAD_GRAYSCALE)
+print(len(image.shape))
 
-global image
-global imageGray
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
+class coordinate:
+    def __init__(self, x, y, yaw):
+        self.x = x
+        self.y = y
+        self.yaw = yaw
+
+    def updateCoordinate(self, x, y, yaw):
+        self.x = x
+        self.y = y
+        self.yaw = yaw
+
+    def getCoordinate(self):
+        return (self.x, self.y, self.yaw)
 
 
 class pathFinder:
@@ -80,6 +88,12 @@ class pathFinder:
         return path
 
 
+class boat(coordinate):
+    def __init__(self, id, x, y, yaw):
+        super().__init__(x, y, yaw)
+        self.id = id
+
+
 class objectDetector:
     def distance(self, point1, point2):
         squareX = (point1[0] - point2[0])**2
@@ -118,7 +132,7 @@ class objectDetector:
         for box, center in boxes:
             if self.distance(box[0], box[1]) > threshold or self.distance(box[1], box[2]) > threshold:
                 if cv2.pointPolygonTest(box, boatCenter, False) >= 0:
-                    boat = (box, boatCenter, center)
+                    boat = (box, boatCenter)
                 else:
                     obstacles.append((box, center))
             else:
@@ -158,93 +172,94 @@ class frameCapture:
     def update(self):
         if not self.feed.isOpened():
             raise IOError("Cannot open webcam")
+        global frame
         ret, frame = self.feed.read()
-        return frame
 
     def release(self):
         self.feed.release()
 
 
-def sendData(x, y, yaw, goalX, goalY):
-    jsonString = json.dumps({"boat": [x, y, yaw], "goal": [goalX, goalY]})
+# fr = frameCapture(0)
 
-    print(jsonString)
-    s.sendall(jsonString.encode())
-    s.recv(8)
+# Check if the webcam is opened correctly
+# while True:
+#     fr.update()
 
+#     cv2.imshow('Input', objectDetect.process(frame))
+#     c = cv2.waitKey(1)
+#     if c == 27:
+#         break
+boatDetect = boatDetector()
+cors = np.int0(boatDetect.detectBoatCoordinate())
+objectDetect = objectDetector()
+pathFind = pathFinder(image, 60)
 
-def controlFrame():
-    boatDetect = boatDetector()
-    cors = np.int0(boatDetect.detectBoatCoordinate())
-    objectDetect = objectDetector()
-    pathFind = pathFinder(image, 60)
+matrix = pathFind.matrixWithCoordinate
 
-    matrix = pathFind.matrixWithCoordinate
+for row in matrix:
+    for point in row:
+        cv2.circle(image, np.int0(
+            (point[1], point[0])), 10, (255, 255, 255), 1)
 
-    for row in matrix:
-        for point in row:
-            cv2.circle(image, np.int0(
-                (point[1], point[0])), 10, (255, 255, 255), 1)
+contours = objectDetect.findContours(image)
+boxes = objectDetect.calculateBoundingBox(contours)
 
-    contours = objectDetect.findContours(image)
-    boxes = objectDetect.calculateBoundingBox(contours)
+boxes = objectDetect.sortBoxes(boxes, 50, (int(cors[0]), int(cors[1])))
+# Draw obstacles
+for box in boxes[1]:
+    cv2.drawContours(image, [box[0]], 0, (0, 0, 255), 2)
+    box = np.int0(box[0])
+    cv2.line(image, box[0], box[2], (0, 0, 255), thickness=2)
+    cv2.line(image, box[1], box[3], (0, 0, 255), thickness=2)
+# Draw trash
+for box in boxes[0]:
+    cv2.circle(image, box[1], 64, (255, 0, 0), 2)
 
-    boxes = objectDetect.sortBoxes(boxes, 50, (int(cors[0]), int(cors[1])))
-    # Draw obstacles
-    for box in boxes[1]:
-        cv2.drawContours(image, [box[0]], 0, (0, 0, 255), 2)
-        box = np.int0(box[0])
-        cv2.line(image, box[0], box[2], (0, 0, 255), thickness=2)
-        cv2.line(image, box[1], box[3], (0, 0, 255), thickness=2)
-    # Draw trash
-    for box in boxes[0]:
-        cv2.circle(image, box[1], 64, (255, 0, 0), 2)
+# Draw boat
+cv2.drawContours(image, [boxes[2][0]], 0, (255, 0, 0), 2)
 
-    # Draw boat
-    cv2.drawContours(image, [boxes[2][0]], 0, (255, 0, 0), 2)
+trash, obstacles, boat = pathFind.convertBoxes(boxes)
 
-    trash, obstacles, boat = pathFind.convertBoxes(boxes)
+path = pathFind.path(boat, trash, obstacles)
+pathPoints = []
+# Draw path point
+for point in path:
+    point = matrix[point[1], point[0]]
+    pathPoints.append(np.int0((point[1], point[0])))
+    cv2.circle(image, np.int0((point[1], point[0])), 5, (0, 0, 0), -1)
+# Draw path line
+cv2.polylines(image, np.int0([pathPoints]), isClosed=False, color=(
+    0, 0, 0), thickness=2, lineType=cv2.LINE_AA)
+cv2.circle(image, cors, 4, (0, 0, 0), -1)
+cv2.imshow("image", image)
 
-    path = pathFind.path(boat, trash, obstacles)
-    pathPoints = []
-    # Draw path point
-    for point in path:
-        point = matrix[point[1], point[0]]
-        pathPoints.append(np.int0((point[1], point[0])))
-        cv2.circle(image, np.int0((point[1], point[0])), 5, (0, 0, 0), -1)
-    # Draw path line
-    cv2.polylines(image, np.int0([pathPoints]), isClosed=False, color=(
-        0, 0, 0), thickness=2, lineType=cv2.LINE_AA)
-    cv2.circle(image, cors, 4, (0, 0, 0), -1)
+# for cnt in contours[0]:
+#     rect = cv2.minAreaRect(cnt)
+#     box = cv2.boxPoints(rect)
+#     box = np.int0(box)
+#     # calculate center
+#     centerX = (box[0, 0] + box[2, 0]) // 2
+#     centerY = (box[0, 1] + box[2, 1]) // 2
+#     cv2.circle(image, (604, 927), 4, (0, 255, 0), -1)
+#     cv2.circle(image, (centerX, centerY), 4, (0, 255, 0), -1)
+#     print((centerX, centerY))
+#     threshold = 50
+#     if distance(box[0], box[1]) > threshold or distance(box[1], box[2]) > threshold:
+#         cv2.drawContours(image, [box], 0, (255, 0, 0), 2)
+#     else:
+#         cv2.drawContours(image, [box], 0, (0, 0, 255), 2)
 
-    # send data to boat
-    boatXY = (boxes[2][1][0], boxes[2][1][1])
-    distanceX = cors[0] - boatXY[0]
-    distanceY = cors[1] - boatXY[1]
-    trackpoint = path[-1]
-    trackpoint = matrix[trackpoint[1], trackpoint[0]]
-    trackpoint = (trackpoint[1], trackpoint[0])
+# points = []
+# for row in calculateCors(image):
+#     for point in row:
+#         points.append(point)
+# for id, p in enumerate(points):
+#     print((np.int0(p), id))
+#     cv2.circle(image, np.int0(p), 10, (0, 255, 0))
+#     image[np.int0(p)[0], np.int0(p)[1]] = (255, 255, 255)
 
-    yaw = math.atan2(distanceY, distanceX)
+# cv2.imshow("img", image)
+cv2.waitKey(0)
 
-    sendData(boatXY[0], boatXY[1], yaw, trackpoint[0], trackpoint[1])
-
-    # visualize
-    cv2.imshow("image", image)
-
-
-fr = frameCapture(0)
-
-
-while True:
-    image = fr.update()
-    imageGray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    controlFrame()
-
-    c = cv2.waitKey(0.2)
-    if c == 27:
-        break
-
-fr.release()
+# # # fr.release()
 cv2.destroyAllWindows()

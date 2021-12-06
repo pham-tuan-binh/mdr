@@ -218,7 +218,7 @@ def controlFrame():
     cv2.circle(image, cors, 4, (0, 0, 0), -1)
 
     # send data to boat
-    boatXY = (boxes[2][1][0], boxes[2][1][1])
+    boatXY = boat[2][2]
     distanceX = cors[0] - boatXY[0]
     distanceY = cors[1] - boatXY[1]
     trackpoint = path[-1]

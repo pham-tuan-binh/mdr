@@ -203,29 +203,15 @@ def controlFrame():
     # Draw boat
     cv2.drawContours(image, [boxes[2][0]], 0, (255, 0, 0), 2)
 
-    trash, obstacles, boat = pathFind.convertBoxes(boxes)
-
-    path = pathFind.path(boat, trash, obstacles)
-    pathPoints = []
-    # Draw path point
-    for point in path:
-        point = matrix[point[1], point[0]]
-        pathPoints.append(np.int0((point[1], point[0])))
-        cv2.circle(image, np.int0((point[1], point[0])), 5, (0, 0, 0), -1)
-    # Draw path line
-    cv2.polylines(image, np.int0([pathPoints]), isClosed=False, color=(
-        0, 0, 0), thickness=2, lineType=cv2.LINE_AA)
-    cv2.circle(image, cors, 4, (0, 0, 0), -1)
+    boat = (boxes[2][1][0], boxes[2][1][1])
 
     # send data to boat
-    boatXY = (boxes[2][1][0], boxes[2][1][1])
+    boatXY = boat
     distanceX = cors[0] - boatXY[0]
     distanceY = cors[1] - boatXY[1]
-    trackpoint = path[-1]
-    trackpoint = matrix[trackpoint[1], trackpoint[0]]
-    trackpoint = (trackpoint[1], trackpoint[0])
 
     yaw = math.atan2(distanceY, distanceX)
+    trackpoint = (243, 234)
 
     sendData(boatXY[0], boatXY[1], yaw, trackpoint[0], trackpoint[1])
 
